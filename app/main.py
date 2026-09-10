@@ -28,9 +28,26 @@ class BookUpdate(BaseModel):
     date_published: date | None = None
     total_copies: int | None = None
 
+class MemberCreate(BaseModel):
+    name: str
+    email: str
+
+class MemberResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    is_active: bool
+
+class MemberUpdate(BaseModel):
+    name: str | None = None
+    email: str | None = None
+    
+
 # Data
 
 books: list[dict] = []
+
+members: list[dict] = []
 
 # Helpers
 
@@ -49,6 +66,21 @@ def find_book(book_id: int) -> dict | None:
         
     return None
 
+def get_next_member_id() -> int:
+    highest_id = 0
+    
+    for member in members:
+        highest_id = max(highest_id, member["id"])
+        
+    return highest_id + 1
+
+def find_member(member_id: int) -> dict | None:
+    for member in members:
+        if member["id"] == member_id:
+            return member
+        
+    return None
+    
 # Main
 
 @app.get("/health")
@@ -71,7 +103,7 @@ def create_book(book: BookCreate):
 def get_books():
     return books
 
-@app.get("/books/{book_id}")
+@app.get("/books/{book_id}", response_model=BookResponse)
 def get_book(book_id: int):
     book = find_book(book_id)
     
@@ -130,5 +162,60 @@ def delete_book(book_id: int):
     
     return book
         
+
+@app.get("/members", response_model=list[MemberResponse])
+def get_members():
+    return members
+
+@app.post("/members", status_code=201, response_model=MemberResponse)
+def create_member(member_create: MemberCreate):
+    member_data = member_create.model_dump()
+    member_data["id"] = get_next_member_id()
+    member_data["is_active"] = True
+    members.append(member_data)
+    
+    return member_data
+
+@app.get("/members/{member_id}", response_model=MemberResponse)
+def get_member(member_id: int):
+    member = find_member(member_id)
+    
+    if member is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Member not found"
+        )
+    
+    return member
+
+@app.patch("/members/{member_id}", response_model=MemberResponse)
+def patch_member(member_id: int, member_update: MemberUpdate):
+    member = find_member(member_id)
         
+    if member is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Member not found"
+        )
+        
+    member_data = member_update.model_dump(exclude_none=True, exclude_unset=True)
+    
+    for key, val in member_data.items():
+        member[key] = val
+        
+    return member
+
+@app.delete("/members/{member_id}", response_model=MemberResponse)
+def delete_member(member_id: int):
+    member = find_member(member_id)
+            
+    if member is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Member not found"
+        )
+    
+    member["is_active"] = False
+    
+    return member
     
