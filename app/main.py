@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from datetime import date
+from datetime import date, timedelta
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -42,13 +42,26 @@ class MemberUpdate(BaseModel):
     name: str | None = None
     email: str | None = None
     
+class LoanCreate(BaseModel):
+    member_id: int
+    book_id: int
 
+class LoanResponse(BaseModel):
+    id: int
+    member_id: int
+    book_id: int
+    borrow_date: date
+    due_date: date
+    returned_date: date | None
+    
+    
 # Data
 
 books: list[dict] = []
 
 members: list[dict] = []
 
+loans: list[dict] = []
 # Helpers
 
 def get_next_book_id() -> int:
@@ -80,8 +93,16 @@ def find_member(member_id: int) -> dict | None:
             return member
         
     return None
+
+def get_next_loan_id() -> int:
+    highest_id = 0
     
-# Main
+    for loan in loans:
+        highest_id = max(highest_id, loan["id"])
+        
+    return highest_id + 1
+
+# MAIN
 
 @app.get("/health")
 def get_health():
@@ -89,6 +110,7 @@ def get_health():
         "status": "ok"
     }
 
+# book endpoints
 @app.post("/books", status_code=201, response_model=BookResponse)
 def create_book(book: BookCreate):
     book_data = book.model_dump()
@@ -162,7 +184,7 @@ def delete_book(book_id: int):
     
     return book
         
-
+# member endpoints
 @app.get("/members", response_model=list[MemberResponse])
 def get_members():
     return members
@@ -218,4 +240,71 @@ def delete_member(member_id: int):
     member["is_active"] = False
     
     return member
+    
+# loan endpoints
+@app.post("/loans", status_code=201, response_model=LoanResponse)
+def create_loan(loan_create: LoanCreate):
+    member = find_member(loan_create.member_id)
+    
+    if member is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Member not found"
+        )
+    
+    book = find_book(loan_create.book_id)
+        
+    if book is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Book not found"
+        )
+        
+    if not member["is_active"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Inactive member cannot borrow books"
+        )
+    
+    if not book["is_active"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Inactive book cannot be borrowed"
+        )
+
+    if book["available_copies"] <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No copies available"
+        )
+        
+    active_loan_count = 0
+    
+    for loan in loans:
+        if loan["member_id"] == loan_create.member_id and loan["returned_date"] is None:
+            if loan["book_id"] == loan_create.book_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Member already has an active loan for this book"
+                )
+            
+            active_loan_count += 1
+            
+    if active_loan_count >= 10:
+        raise HTTPException(
+            status_code=400,
+            detail="Member has reached the active loan limit"
+        )
+        
+    
+    loan_data = loan_create.model_dump()
+    loan_data["id"] = get_next_loan_id()
+    loan_data["borrow_date"] = date.today()
+    loan_data["due_date"] = loan_data["borrow_date"] + timedelta(days=21)
+    loan_data["returned_date"] = None
+    loans.append(loan_data)
+    
+    book["available_copies"] -= 1
+    
+    return loan_data
     
