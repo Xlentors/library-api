@@ -57,11 +57,84 @@ class LoanResponse(BaseModel):
 
 # Data
 
-books: list[dict] = []
+books: list[dict] = [
+    {
+        "id": 1,
+        "title": "Dune",
+        "author": "Frank Herbert",
+        "date_published": date(1965, 8, 1),
+        "total_copies": 3,
+        "available_copies": 2,
+        "is_active": True,
+    },
+    {
+        "id": 2,
+        "title": "The Hobbit",
+        "author": "J.R.R. Tolkien",
+        "date_published": date(1937, 9, 21),
+        "total_copies": 2,
+        "available_copies": 1,
+        "is_active": True,
+    },
+    {
+        "id": 3,
+        "title": "1984",
+        "author": "George Orwell",
+        "date_published": date(1949, 6, 8),
+        "total_copies": 1,
+        "available_copies": 1,
+        "is_active": True,
+    },
+]
 
-members: list[dict] = []
+members: list[dict] = [
+    {
+        "id": 1,
+        "name": "Alex Reader",
+        "email": "alex@example.com",
+        "is_active": True,
+    },
+    {
+        "id": 2,
+        "name": "Jordan Lee",
+        "email": "jordan@example.com",
+        "is_active": True,
+    },
+    {
+        "id": 3,
+        "name": "Casey Morgan",
+        "email": "casey@example.com",
+        "is_active": False,
+    },
+]
 
-loans: list[dict] = []
+loans: list[dict] = [
+    {
+        "id": 1,
+        "member_id": 1,
+        "book_id": 1,
+        "borrow_date": date.today() - timedelta(days=5),
+        "due_date": date.today() + timedelta(days=16),
+        "returned_date": None,
+    },
+    {
+        "id": 2,
+        "member_id": 1,
+        "book_id": 2,
+        "borrow_date": date.today() - timedelta(days=30),
+        "due_date": date.today() - timedelta(days=9),
+        "returned_date": None,
+    },
+    {
+        "id": 3,
+        "member_id": 2,
+        "book_id": 3,
+        "borrow_date": date.today() - timedelta(days=40),
+        "due_date": date.today() - timedelta(days=19),
+        "returned_date": date.today() - timedelta(days=25),
+    },
+]
+
 # Helpers
 
 def get_next_book_id() -> int:
@@ -289,6 +362,12 @@ def create_loan(loan_create: LoanCreate):
 
     for loan in loans:
         if loan["member_id"] == loan_create.member_id and loan["returned_date"] is None:
+            if loan["due_date"] < date.today():
+                raise HTTPException(
+                    status_code=400,
+                    detail="Member has an overdue loan"
+                )
+
             if loan["book_id"] == loan_create.book_id:
                 raise HTTPException(
                     status_code=400,
@@ -355,3 +434,28 @@ def return_loan(loan_id: int):
     loan["returned_date"] = date.today()
     book["available_copies"] += 1
     return loan
+
+@app.get("/loans", response_model=list[LoanResponse])
+def get_loans(
+    member_id: int | None = None,
+    book_id: int | None = None,
+    active: bool | None = None,
+):
+    res = []
+
+    for loan in loans:
+        member_matches = member_id is None or loan["member_id"] == member_id
+        book_matches = book_id is None or loan["book_id"] == book_id
+
+        if active is None:
+            active_matches = True
+        elif active:
+            active_matches = loan["returned_date"] is None
+        else:
+            active_matches = loan["returned_date"] is not None
+
+        if book_matches and member_matches and active_matches:
+            res.append(loan)
+
+
+    return res

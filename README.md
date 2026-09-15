@@ -9,6 +9,7 @@ An in memory REST API for a library system built with Python, FastAPI, and Pydan
 * Track total and available book copies
 * Return appropriate validation and not found errors
 * Uses interactive API documentation via Swagger UI
+* Prevents loaning to people with overdue loans
 
 ## Tech Stack
 * Python
@@ -20,7 +21,7 @@ An in memory REST API for a library system built with Python, FastAPI, and Pydan
 * Health: GET /health
 * Books: POST /books, GET /books, GET /books/{book_id}, PATCH /books/{book_id}, DELETE /books/{book_id}
 * Members: POST /members, GET /members, GET /members/{member_id}, PATCH /members/{member_id}, DELETE /members/{member_id}
-* Loans: POST /loans, GET /loans/{loan_id}, PATCH /loans/{loan_id}/return
+* Loans: POST /loans, GET /loans/{loan_id}, PATCH /loans/{loan_id}/return, GET /loans
 
 ## How to Start
 git clone https://github.com/Xlentors/library-api.git
@@ -36,4 +37,4 @@ Interactive documentation at:
 http://127.0.0.1:8000/docs
 
 ## Current Scope
-Currently the storage uses in-memory Python lists and resets when the server starts. This version mainly focuses on REST design, validation, and library rules (ex. loan limits or number of available books).
+Currently the storage uses in-memory Python lists and resets with included sample data when the server starts. This version mainly focuses on REST design, validation, and library rules (ex. loan limits or number of available books).
