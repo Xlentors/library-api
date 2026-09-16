@@ -60,18 +60,18 @@ class LoanResponse(BaseModel):
 books: list[dict] = [
     {
         "id": 1,
-        "title": "Dune",
-        "author": "Frank Herbert",
-        "date_published": date(1965, 8, 1),
+        "title": "The Storm Before The Storm",
+        "author": "Mike Duncan",
+        "date_published": date(2017, 10, 24),
         "total_copies": 3,
         "available_copies": 2,
         "is_active": True,
     },
     {
         "id": 2,
-        "title": "The Hobbit",
-        "author": "J.R.R. Tolkien",
-        "date_published": date(1937, 9, 21),
+        "title": "Cyberpunk 2077: No Coincidence",
+        "author": "Rafał Kosik",
+        "date_published": date(2023, 8, 23),
         "total_copies": 2,
         "available_copies": 1,
         "is_active": True,
@@ -102,8 +102,8 @@ members: list[dict] = [
     },
     {
         "id": 3,
-        "name": "Casey Morgan",
-        "email": "casey@example.com",
+        "name": "Marcus Aurelius",
+        "email": "marcus@example.com",
         "is_active": False,
     },
 ]
