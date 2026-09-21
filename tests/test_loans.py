@@ -3,7 +3,8 @@ from copy import deepcopy
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app, books, members, loans
+from app.data import books, loans, members
+from app.main import app
 from datetime import date, timedelta
 
 client = TestClient(app)
